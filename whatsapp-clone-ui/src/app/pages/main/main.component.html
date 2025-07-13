@@ -16,12 +16,13 @@
 
     <div class="d-flex w-100">
       <div class="col-3 overflow-x-scroll">
-        <app-chat-list>
+        <app-chat-list
           [chats]="chats"
-          (chatSelected)="chatSelected($event)"
+          (chatSelected)="chatSelected($event)">
         </app-chat-list>
       </div>
-      <div class="col-9">
+      @if (selectedChat.id) {
+        <div class="col-9">
         <div class="d-flex flex-column justify-content-between h-100">
           <div class="gray-bg p-2">
             <div class="d-flex gap-2">
@@ -98,21 +99,21 @@
           </div>
           <div class="gray-bg p-2">
             <div class="d-flex gap-2 align-items-center">
-              <i 
+              <i
                 class="fas fa-paperclip cursor-pointer"
                 (click)="inputFile.click()"
               >
               </i>
-              <input 
+              <input
                 #inputFile
-                type="file" 
+                type="file"
                 [hidden]="true"
                 accept=".jpg, .jpeg, .png, .gif, .svg, .mp4, .mov, .mp3"
-                (change)="uploadMedia($event.target)"  
+                (change)="uploadMedia($event.target)"
               />
-              <i 
+              <i
                 class="fa-regular fa-face-smile cursor-pointer"
-                (click)="showEmojis = !showEmojis"  
+                (click)="showEmojis = !showEmojis"
               >
 
               </i>
@@ -125,10 +126,30 @@
                   (emojiSelect)="onSelectEmojis($event)"
                 ></emoji-mart>
               }
+              <input type="text"
+                     class="form-control-sm w-100"
+                     placeholder="Type a message"
+                     [(ngModel)]="messageContent"
+                     (keydown)="keyDown($event)"
+                     (click)="onClick()"
+              />
+              @if (messageContent) {
+                <i class="fas fa-paper-plane cursor-pointer"
+                    (click)="sendMessage()"></i>
+              } @else {
+                <i class="fas fa-microphone cursor-pointer"></i>
+              }
             </div>
           </div>
         </div>
       </div>
+      } @else {
+        <div class="d-flex flex-column justify-content-center align-items-center h-100 w-100 bg-chat">
+          <img src="wa_banner.png" alt=""  width="300" />
+          <h2 class="text-black-50">Whatsapp Clone Application</h2>
+          <p class="text-black-50">...</p>
+        </div>
+      }
     </div>
   </div>
 </div>
