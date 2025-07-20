@@ -1,4 +1,4 @@
-import {AfterViewChecked, Component, OnDestroy, OnInit} from '@angular/core';
+import {AfterViewChecked, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {ChatListComponent} from '../../components/chat-list/chat-list.component';
 import {ChatResponse} from '../../services/models/chat-response';
 import {ChatService} from '../../services/services/chat.service';
@@ -14,6 +14,7 @@ import * as Stomp from "stompjs";
 import SockJS from "sockjs-client";
 import {Notification} from './notification';
 
+
 @Component({
   selector: 'app-main',
   imports: [
@@ -25,7 +26,7 @@ import {Notification} from './notification';
   templateUrl: './main.component.html',
   styleUrl: './main.component.scss'
 })
-export class MainComponent implements OnInit, OnDestroy {
+export class MainComponent implements OnInit, OnDestroy, AfterViewChecked {
 
     chats: Array<ChatResponse> = [];
     selectedChat: ChatResponse = {} as ChatResponse;
@@ -33,6 +34,7 @@ export class MainComponent implements OnInit, OnDestroy {
     showEmojis: boolean = false;
     messageContent: string = '';
     socketClient: any = null;
+    @ViewChild('scrollableDiv') scrollableDiv!: ElementRef<HTMLDivElement>;
     private notificationSubscription: any;
 
     constructor(
@@ -40,6 +42,10 @@ export class MainComponent implements OnInit, OnDestroy {
       private keycloakService: KeycloakService,
       private messageService: MessageService
     ) {}
+
+    ngAfterViewChecked(): void {
+        this.scrollBottom();
+    }
 
 
     ngOnDestroy(): void {
@@ -103,8 +109,48 @@ export class MainComponent implements OnInit, OnDestroy {
       return message.senderId === this.keycloakService.userId;
     }
 
-    uploadMedia(event: EventTarget | null) {
+    private extractFileFromTarget(target: EventTarget | null): File | null {
+      const htmlImportTarget = target as HTMLInputElement;
 
+      if (target === null || htmlImportTarget.files === null) {
+        return null;
+      }
+
+      return htmlImportTarget.files[0];
+    }
+
+    uploadMedia(target: EventTarget | null) {
+      const file = this.extractFileFromTarget(target);
+
+      if (file != null) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result) {
+            const mediaLines = reader.result.toString().split(',')[1];
+
+            this.messageService.uploadMessage({
+              'chat-id': this.selectedChat.id as string,
+              body: {
+                file: file
+              }
+            }).subscribe({
+              next: () => {
+                const message: MessageResponse = {
+                  senderId: this.getSenderId(),
+                  receiverId: this.getReceiverId(),
+                  content: 'Attachment',
+                  type: 'IMAGE',
+                  state: 'SENT',
+                  media: [mediaLines],
+                  createdAt: new Date().toString()
+                };
+                this.chatMessages.push(message);
+              }
+            });
+          }
+        }
+        reader.readAsDataURL(file);
+      }
 
     }
 
@@ -240,6 +286,14 @@ export class MainComponent implements OnInit, OnDestroy {
         }
         this.chats.unshift(newChat);
       }
+    }
+  }
+
+  private scrollBottom() {
+    if (this.scrollableDiv) {
+      const div = this.scrollableDiv.nativeElement;
+      div.scrollTop = div.scrollHeight;
+
     }
   }
 }
